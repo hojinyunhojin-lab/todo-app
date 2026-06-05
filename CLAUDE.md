@@ -6,17 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 실행 방법
 
-빌드·설치·서버 없음. `todo.html` 파일을 브라우저에서 더블클릭해 열면 바로 동작한다.
+빌드·설치·서버 없음. `index.html` 파일을 브라우저에서 더블클릭해 열면 바로 동작한다.
 변경 후에는 브라우저 강력 새로고침(`Cmd + Shift + R`)으로 확인한다.
 
 ## 제약 (반드시 지킬 것)
 
-- **단일 파일**: HTML/CSS/JavaScript를 `todo.html` 한 파일 안에 모두 둔다. 파일을 분리하지 않는다.
+- **단일 파일**: HTML/CSS/JavaScript를 `index.html` 한 파일 안에 모두 둔다. 파일을 분리하지 않는다.
 - **외부 의존성 금지**: 라이브러리·프레임워크·CDN·빌드도구를 쓰지 않는다. 순수 HTML/CSS/JS만 사용.
 - **오프라인**: 인터넷 연결 없이 더블클릭만으로 열려야 한다.
 - 사용자는 비개발자이므로, 코드에는 동작 방식을 설명하는 쉬운 한국어 주석을 단다.
 
-## 구조 (todo.html)
+## 구조 (index.html)
 
 `<style>` / `<body>` / `<script>` 세 부분으로 구성. 화면은 위에서 아래로 5개 영역:
 1. 상단(제목 + 오늘 날짜 자동 표시)  2. 진행률  3. 입력  4. 필터  5. 할일 목록
