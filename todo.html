@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>나의 할일</title>
+
+  <!-- ===== 스타일(CSS): 화면의 색, 간격, 글꼴 등 '보이는 모습'을 정하는 부분 ===== -->
+  <style>
+    /* 기본값 초기화: 브라우저마다 다른 여백을 통일 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* 전체 배경과 기본 글꼴 */
+    body {
+      font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      background: #f4f5f7;
+      color: #2d2d2d;
+      line-height: 1.5;
+      padding: 24px 16px;
+    }
+
+    /* 앱 전체를 감싸는 가운데 정렬 카드 */
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+      padding: 24px;
+    }
+
+    /* 1) 상단 제목 영역 */
+    .header {
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .header .today {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #888;
+    }
+
+    /* 공통: 각 영역을 구분하는 빈 자리(자리표시) 박스 */
+    .section {
+      margin-bottom: 16px;
+      padding: 16px;
+      border: 1px dashed #d0d2d6;
+      border-radius: 12px;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    /* 2) 진행률 영역 */
+    .progress-area {
+      /* 점선 자리표시 해제 */
+      border: none;
+      padding: 0;
+      color: inherit;
+    }
+    /* 진행률 윗줄: 왼쪽 퍼센트, 오른쪽 완료/전체 개수 */
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .progress-top .percent {
+      font-size: 18px;
+      font-weight: 700;
+      color: #4a6cf7;
+    }
+    .progress-top .count {
+      font-size: 13px;
+      color: #888;
+    }
+    /* 막대그래프의 바깥(회색 배경 트랙) */
+    .progress-bar {
+      height: 10px;
+      background: #eceef1;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    /* 막대그래프의 채워지는 부분 (너비를 퍼센트로 조절) */
+    .progress-fill {
+      height: 100%;
+      width: 0%;                 /* 자바스크립트가 실제 퍼센트로 바꿈 */
+      background: #4a6cf7;
+      border-radius: 999px;
+      transition: width 0.3s;    /* 너비가 부드럽게 변하도록 */
+    }
+
+    /* 3) 할일 입력 영역: 입력칸 + 카테고리 선택 + 추가 버튼을 한 줄로 배치 */
+    .input-area {
+      /* 점선 자리표시 스타일 해제하고 실제 입력 영역으로 바꿈 */
+      border: none;
+      padding: 0;
+      display: flex;
+      gap: 8px;
+    }
+    /* 할일 제목 입력칸: 남는 공간을 모두 차지 */
+    .input-area .todo-input {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #d0d2d6;
+      border-radius: 10px;
+    }
+    /* 카테고리 선택 상자 */
+    .input-area .category-select {
+      padding: 10px 8px;
+      font-size: 14px;
+      border: 1px solid #d0d2d6;
+      border-radius: 10px;
+      background: #fff;
+    }
+    /* 추가 버튼 */
+    .input-area .add-btn {
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: #4a6cf7;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .input-area .add-btn:hover {
+      background: #3a5ce0;
+    }
+
+    /* 4) 필터 버튼 영역 */
+    .filter-area {
+      /* 점선 자리표시 해제 */
+      border: none;
+      padding: 0;
+      color: inherit;
+    }
+    /* 필터 버튼 한 묶음 (상태 줄 / 카테고리 줄) */
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;          /* 좁으면 다음 줄로 넘어감 */
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .filter-row:last-child {
+      margin-bottom: 0;
+    }
+    /* 필터 버튼 하나 */
+    .filter-btn {
+      padding: 6px 12px;
+      font-size: 13px;
+      border: 1px solid #d0d2d6;
+      border-radius: 999px;
+      background: #fff;
+      color: #555;
+      cursor: pointer;
+    }
+    .filter-btn:hover {
+      background: #f1f2f4;
+    }
+    /* 지금 선택된 필터 버튼: 파란색으로 강조 */
+    .filter-btn.active {
+      background: #4a6cf7;
+      border-color: #4a6cf7;
+      color: #fff;
+    }
+
+    /* 5) 할일 목록 영역 */
+    .list-area {
+      /* 점선 자리표시 해제하고 카드들을 담는 공간으로 바꿈 */
+      border: none;
+      padding: 0;
+      min-height: 120px;
+      color: inherit;
+    }
+    /* 할일이 하나도 없을 때 보여줄 안내 문구 */
+    .empty-msg {
+      text-align: center;
+      color: #bbb;
+      font-size: 14px;
+      padding: 24px 0;
+    }
+    /* 할일 카드 하나 */
+    .todo-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      background: #fafbfc;
+      border: 1px solid #eceef1;
+      border-radius: 12px;
+    }
+    /* 완료 체크용 동그라미 버튼 */
+    .check-circle {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;          /* 크기 고정 (줄어들지 않게) */
+      border: 2px solid #c4c7cc;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: #fff;             /* 평소엔 글자색이 흰색이라 체크표시가 안 보임 */
+      padding: 0;
+      line-height: 1;
+    }
+    /* 완료된 할일의 동그라미: 초록색으로 채우고 체크표시를 보이게 */
+    .todo-card.done .check-circle {
+      background: #22c55e;
+      border-color: #22c55e;
+    }
+
+    /* 카드 안의 제목 */
+    .todo-card .title {
+      flex: 1;
+      font-size: 15px;
+      color: #2d2d2d;
+    }
+    /* 완료된 할일의 제목: 취소선 + 흐리게 */
+    .todo-card.done .title {
+      text-decoration: line-through;
+      color: #aaa;
+    }
+
+    /* 수정/삭제 같은 작은 아이콘 버튼 */
+    .icon-btn {
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+    }
+    .icon-btn:hover {
+      background: #eceef1;     /* 마우스를 올리면 옅은 배경으로 강조 */
+    }
+    /* 카테고리 배지(작은 색깔 라벨)의 공통 모양 */
+    .badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    /* 카테고리별 배지 색상 (글자색 + 배경색) */
+    .badge.작업   { color: #1d4ed8; background: #dbeafe; }  /* 파랑 */
+    .badge.공부   { color: #047857; background: #d1fae5; }  /* 초록 */
+    .badge.개인   { color: #b45309; background: #fef3c7; }  /* 노랑/주황 */
+    .badge.업무   { color: #6d28d9; background: #ede9fe; }  /* 보라 */
+    .badge.기술   { color: #be123c; background: #ffe4e6; }  /* 빨강/분홍 */
+    .badge.지원   { color: #0e7490; background: #cffafe; }  /* 청록 */
+
+    /* ===== 반응형: 화면 폭이 좁은 휴대폰(가로 480px 이하)일 때 ===== */
+    @media (max-width: 480px) {
+      body {
+        padding: 12px 8px;     /* 바깥 여백을 줄여 공간 확보 */
+      }
+      .app {
+        padding: 16px;
+        border-radius: 12px;
+      }
+      /* 입력 영역을 가로 한 줄 대신 세로로 쌓아 좁은 화면에서도 안 눌리게 */
+      .input-area {
+        flex-wrap: wrap;
+      }
+      .input-area .todo-input {
+        flex: 1 1 100%;        /* 입력칸은 한 줄 전체 차지 */
+      }
+      .input-area .category-select {
+        flex: 1;               /* 아래 줄에서 선택칸과 버튼이 나란히 */
+      }
+      /* 손가락으로 누르기 쉽도록 카드 안 버튼을 살짝 키움 */
+      .icon-btn {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ===== 화면 구조(HTML): 무엇이 어디에 놓이는지 '뼈대'를 정하는 부분 ===== -->
+  <div class="app">
+
+    <!-- 1) 상단: 앱 제목과 오늘 날짜 -->
+    <header class="header">
+      <h1>나의 할일</h1>
+      <p class="today" id="today">오늘 날짜 (자동 표시 예정)</p>
+    </header>
+
+    <!-- 2) 진행률 영역: 퍼센트 + 완료/전체 개수 + 막대그래프 -->
+    <section class="section progress-area">
+      <div class="progress-top">
+        <span class="percent" id="progressPercent">0%</span>
+        <span class="count" id="progressCount">0/0</span>
+      </div>
+      <div class="progress-bar">
+        <!-- 이 안쪽 막대의 너비를 퍼센트로 조절해서 채워진 정도를 표현 -->
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </section>
+
+    <!-- 3) 할일 입력 영역: 입력칸 + 카테고리 선택 + 추가 버튼 -->
+    <section class="section input-area">
+      <!-- 할일 제목을 적는 칸 -->
+      <input type="text" id="todoInput" class="todo-input" placeholder="할일을 입력하세요">
+      <!-- 카테고리 선택 -->
+      <select id="categorySelect" class="category-select">
+        <option value="작업">작업</option>
+        <option value="공부">공부</option>
+        <option value="개인">개인</option>
+        <option value="업무">업무</option>
+        <option value="기술">기술</option>
+        <option value="지원">지원</option>
+      </select>
+      <!-- 추가 버튼 -->
+      <button id="addBtn" class="add-btn">추가</button>
+    </section>
+
+    <!-- 4) 필터 버튼 영역: 상태(전체/미완료/완료) 줄과 카테고리 줄 -->
+    <section class="section filter-area">
+      <!-- 상태 필터: data-status 에 어떤 상태를 거를지 적어둠 -->
+      <div class="filter-row" id="statusFilters">
+        <button class="filter-btn active" data-status="전체">전체</button>
+        <button class="filter-btn" data-status="미완료">미완료</button>
+        <button class="filter-btn" data-status="완료">완료</button>
+      </div>
+      <!-- 카테고리 필터: data-category 에 어떤 카테고리를 거를지 적어둠 -->
+      <div class="filter-row" id="categoryFilters">
+        <button class="filter-btn active" data-category="전체">전체</button>
+        <button class="filter-btn" data-category="작업">작업</button>
+        <button class="filter-btn" data-category="공부">공부</button>
+        <button class="filter-btn" data-category="개인">개인</button>
+        <button class="filter-btn" data-category="업무">업무</button>
+        <button class="filter-btn" data-category="기술">기술</button>
+        <button class="filter-btn" data-category="지원">지원</button>
+      </div>
+    </section>
+
+    <!-- 5) 할일 목록 영역: 추가된 할일 카드들이 이 안에 쌓임 -->
+    <section class="section list-area" id="todoList">
+      <!-- 자바스크립트가 여기에 할일 카드를 그려 넣습니다 -->
+    </section>
+
+  </div>
+
+  <!-- ===== 동작(JavaScript): 버튼 클릭, 데이터 저장 등 '움직임'을 담당하는 부분 ===== -->
+  <script>
+    // ===== 1) 화면 요소들을 미리 찾아두기 =====
+    // document.getElementById 는 HTML에서 id로 정한 요소를 찾아오는 명령입니다.
+    var todoInput = document.getElementById("todoInput");        // 할일 입력칸
+    var categorySelect = document.getElementById("categorySelect"); // 카테고리 선택
+    var addBtn = document.getElementById("addBtn");              // 추가 버튼
+    var todoList = document.getElementById("todoList");          // 할일 카드가 쌓일 목록
+
+    // 진행률 영역 요소들
+    var progressPercent = document.getElementById("progressPercent"); // "60%" 표시
+    var progressCount = document.getElementById("progressCount");     // "6/10" 표시
+    var progressFill = document.getElementById("progressFill");       // 채워지는 막대
+
+    // 필터 버튼 묶음
+    var statusFilters = document.getElementById("statusFilters");     // 전체/미완료/완료
+    var categoryFilters = document.getElementById("categoryFilters"); // 카테고리 버튼들
+
+    // 지금 선택된 필터 상태를 기억하는 변수 (처음엔 모두 "전체")
+    var currentStatus = "전체";
+    var currentCategory = "전체";
+
+    // ===== 2) 할일 데이터를 담아둘 배열 =====
+    // 화면에 보이는 모든 할일을 이 배열에 보관합니다. (맨 앞이 가장 최근에 추가한 것)
+    // 각 할일은 { id, title, category, done } 모양으로 저장합니다.
+    var todos = [];
+
+    // 할일마다 겹치지 않는 고유 번호(id)를 붙이기 위한 숫자.
+    // 새 할일을 만들 때마다 1씩 늘려서 사용합니다.
+    var nextId = 1;
+
+    // ===== 2-1) 데이터 저장/불러오기 (localStorage) =====
+    //
+    // [localStorage 란?]
+    // 브라우저가 컴퓨터 안에 마련해 둔 작은 '저장 서랍'입니다.
+    // 여기에 글자를 넣어두면, 페이지를 새로고침하거나 창을 닫았다 다시 열어도
+    // 내용이 그대로 남아 있습니다. (인터넷 연결도 필요 없습니다.)
+    //
+    // [어떻게 저장하나요?]
+    // localStorage 에는 '글자'만 넣을 수 있습니다. 그런데 우리 할일은 목록(배열) 형태이므로,
+    // JSON.stringify 로 목록을 '한 줄의 글자'로 바꿔서 저장하고,
+    // 꺼낼 때는 JSON.parse 로 다시 '목록'으로 되돌립니다.
+
+    // 저장할 때 사용할 이름표(열쇠). 이 이름으로 저장하고 이 이름으로 꺼냅니다.
+    var STORAGE_KEY = "myTodos";
+
+    // (저장) 현재 할일 목록을 글자로 바꿔 localStorage 서랍에 넣습니다.
+    function saveTodos() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    }
+
+    // (불러오기) 페이지를 열 때 서랍에서 예전 할일을 꺼내옵니다.
+    function loadTodos() {
+      var saved = localStorage.getItem(STORAGE_KEY); // 저장된 글자를 꺼냄 (없으면 null)
+      if (!saved) return;                            // 저장된 게 없으면 그냥 빈 목록으로 시작
+
+      // 혹시 저장된 내용이 손상되어 있어도 앱이 멈추지 않도록 try/catch 로 감쌈
+      try {
+        todos = JSON.parse(saved); // 글자를 다시 목록(배열)으로 되돌림
+      } catch (e) {
+        todos = []; // 읽기에 실패하면 빈 목록으로 시작
+        return;
+      }
+
+      // 새로 추가할 할일의 id 가 기존 것과 겹치지 않도록,
+      // 저장된 할일 중 가장 큰 id 보다 1 큰 값에서 다시 시작합니다.
+      for (var i = 0; i < todos.length; i++) {
+        if (todos[i].id >= nextId) {
+          nextId = todos[i].id + 1;
+        }
+      }
+    }
+
+    // ===== 3) 배열(todos)을 보고 화면을 다시 그리는 함수 =====
+    // 데이터가 바뀔 때마다 이 함수를 부르면 목록 전체를 새로 그립니다.
+    function render() {
+      // (1) 먼저 진행률을 갱신 (완료/전체 개수, 퍼센트, 막대)
+      updateProgress();
+
+      todoList.innerHTML = ""; // 기존에 그려진 내용을 모두 지우고 새로 시작
+
+      // (2) 현재 선택된 필터에 맞는 할일만 골라냄
+      var visibleTodos = getFilteredTodos();
+
+      // 보여줄 할일이 하나도 없으면 안내 문구만 표시
+      if (visibleTodos.length === 0) {
+        // 할일 자체가 없는 경우와 필터로 가려진 경우를 구분해 안내
+        if (todos.length === 0) {
+          todoList.innerHTML = '<p class="empty-msg">아직 할일이 없습니다.</p>';
+        } else {
+          todoList.innerHTML = '<p class="empty-msg">조건에 맞는 할일이 없습니다.</p>';
+        }
+        return;
+      }
+
+      // (3) 골라낸 할일을 하나씩 카드로 만들어 붙임
+      for (var i = 0; i < visibleTodos.length; i++) {
+        var todo = visibleTodos[i];
+
+        var card = document.createElement("div");
+        // 완료된 할일이면 class 에 "done" 을 추가해서 취소선 등 완료 스타일이 적용되게 함
+        card.className = todo.done ? "todo-card done" : "todo-card";
+
+        // (가) 완료 체크용 동그라미: 누르면 완료/해제가 바뀜
+        var circle = document.createElement("button");
+        circle.className = "check-circle";
+        circle.textContent = "✓"; // 평소엔 흰색이라 안 보이고, 완료되면 초록 배경 위에 보임
+        // 클릭하면 이 할일의 id 를 넘겨 완료 상태를 뒤집음
+        circle.addEventListener("click", makeHandler(toggleDone, todo.id));
+
+        // (나) 제목 부분
+        var title = document.createElement("span");
+        title.className = "title";
+        title.textContent = todo.title; // textContent 를 쓰면 입력값이 안전하게 글자로만 표시됨
+
+        // (다) 카테고리 배지 부분 (배지 색은 카테고리 이름을 class 로 붙여 CSS가 결정)
+        var badge = document.createElement("span");
+        badge.className = "badge " + todo.category;
+        badge.textContent = todo.category;
+
+        // (라) 수정 버튼 (연필 아이콘)
+        var editBtn = document.createElement("button");
+        editBtn.className = "icon-btn";
+        editBtn.textContent = "✏️";
+        editBtn.title = "수정";
+        editBtn.addEventListener("click", makeHandler(editTodo, todo.id));
+
+        // (마) 삭제 버튼 (휴지통 아이콘)
+        var deleteBtn = document.createElement("button");
+        deleteBtn.className = "icon-btn";
+        deleteBtn.textContent = "🗑️";
+        deleteBtn.title = "삭제";
+        deleteBtn.addEventListener("click", makeHandler(deleteTodo, todo.id));
+
+        // 카드 안에 왼쪽부터 순서대로 붙이기
+        card.appendChild(circle);
+        card.appendChild(title);
+        card.appendChild(badge);
+        card.appendChild(editBtn);
+        card.appendChild(deleteBtn);
+        todoList.appendChild(card);
+      }
+    }
+
+    // 반복문 안에서 버튼마다 "그 할일의 id"를 기억한 클릭 처리기를 안전하게 만들어주는 도우미.
+    // (반복문 안에서 직접 함수를 만들면 id가 섞일 수 있어, 이렇게 따로 만들어 줍니다.)
+    function makeHandler(fn, id) {
+      return function () {
+        fn(id);
+      };
+    }
+
+    // id 로 todos 배열에서 해당 할일이 몇 번째에 있는지 찾아주는 도우미
+    function findIndexById(id) {
+      for (var i = 0; i < todos.length; i++) {
+        if (todos[i].id === id) {
+          return i;
+        }
+      }
+      return -1; // 못 찾으면 -1
+    }
+
+    // ===== 진행률 계산 및 표시 =====
+    // 전체 할일 중 완료된 개수를 세어 퍼센트, 개수, 막대 너비를 갱신합니다.
+    function updateProgress() {
+      var total = todos.length;
+
+      // 완료된 할일 개수 세기
+      var done = 0;
+      for (var i = 0; i < todos.length; i++) {
+        if (todos[i].done) {
+          done = done + 1;
+        }
+      }
+
+      // 퍼센트 계산 (할일이 0개면 0%로 처리해 0으로 나누는 오류 방지)
+      var percent = total === 0 ? 0 : Math.round((done / total) * 100);
+
+      // 화면에 반영
+      progressPercent.textContent = percent + "%";
+      progressCount.textContent = done + "/" + total;
+      progressFill.style.width = percent + "%"; // 막대 너비를 퍼센트로
+    }
+
+    // ===== 현재 필터에 맞는 할일만 골라내기 =====
+    // 상태 필터(전체/미완료/완료)와 카테고리 필터를 모두 통과한 것만 돌려줍니다.
+    function getFilteredTodos() {
+      var result = [];
+      for (var i = 0; i < todos.length; i++) {
+        var todo = todos[i];
+
+        // 상태 조건 확인
+        var statusOk =
+          currentStatus === "전체" ||
+          (currentStatus === "완료" && todo.done) ||
+          (currentStatus === "미완료" && !todo.done);
+
+        // 카테고리 조건 확인
+        var categoryOk =
+          currentCategory === "전체" || currentCategory === todo.category;
+
+        // 두 조건을 모두 만족하면 결과에 추가
+        if (statusOk && categoryOk) {
+          result.push(todo);
+        }
+      }
+      return result;
+    }
+
+    // ===== 4) 할일을 추가하는 함수 =====
+    function addTodo() {
+      var text = todoInput.value.trim(); // trim() 은 앞뒤 공백을 제거
+
+      // 입력칸이 비어 있으면(또는 공백만 있으면) 추가하지 않고 멈춤
+      if (text === "") {
+        return;
+      }
+
+      // 새 할일을 배열 맨 앞(unshift)에 넣어 목록 맨 위에 보이게 함
+      todos.unshift({
+        id: nextId,                    // 고유 번호 부여
+        title: text,
+        category: categorySelect.value,
+        done: false                    // 처음엔 '완료 안 됨' 상태
+      });
+      nextId = nextId + 1;             // 다음 할일을 위해 번호 1 증가
+
+      todoInput.value = ""; // 입력칸 비우기
+      todoInput.focus();    // 바로 다음 할일을 적을 수 있게 입력칸에 커서 두기
+      saveTodos();          // 변경된 목록을 저장
+      render();             // 화면 다시 그리기
+    }
+
+    // ===== 5) 완료 체크 / 수정 / 삭제 기능 =====
+
+    // (완료 체크) 동그라미를 누르면 완료 상태를 반대로 뒤집음 (완료↔해제)
+    function toggleDone(id) {
+      var index = findIndexById(id);
+      if (index === -1) return;
+      todos[index].done = !todos[index].done; // true면 false로, false면 true로
+      saveTodos();                             // 변경된 목록을 저장
+      render();                                // 화면 다시 그리기
+    }
+
+    // (수정) 수정 버튼을 누르면 작은 입력창을 띄워 제목을 고쳐 씀
+    function editTodo(id) {
+      var index = findIndexById(id);
+      if (index === -1) return;
+
+      // prompt 는 사용자에게 글자를 입력받는 작은 창입니다. 두 번째 값은 기존 제목(미리 채워둠).
+      var newTitle = prompt("할일을 수정하세요", todos[index].title);
+
+      // 취소를 누르면 newTitle 이 null 이므로 아무것도 안 함
+      if (newTitle === null) return;
+
+      newTitle = newTitle.trim();
+      if (newTitle === "") return; // 빈 칸으로는 바꾸지 않음
+
+      todos[index].title = newTitle;
+      saveTodos(); // 변경된 목록을 저장
+      render();
+    }
+
+    // (삭제) 삭제 버튼을 누르면 확인창을 띄우고, 확인을 누른 경우에만 지움
+    function deleteTodo(id) {
+      var index = findIndexById(id);
+      if (index === -1) return;
+
+      // confirm 은 "확인/취소" 버튼이 있는 창입니다. 확인을 누르면 true 를 돌려줍니다.
+      var ok = confirm("정말 삭제할까요?");
+      if (!ok) return; // 취소를 누르면 지우지 않고 멈춤
+
+      todos.splice(index, 1); // 배열에서 해당 할일 1개를 제거
+      saveTodos();            // 변경된 목록을 저장
+      render();
+    }
+
+    // ===== 6) 동작 연결하기 =====
+    // 추가 버튼을 클릭하면 addTodo 실행
+    addBtn.addEventListener("click", addTodo);
+
+    // (상태 필터) 버튼을 누르면 그 버튼만 강조하고 currentStatus 를 바꾼 뒤 다시 그림
+    statusFilters.addEventListener("click", function (event) {
+      var btn = event.target;
+      if (!btn.classList.contains("filter-btn")) return; // 버튼이 아닌 곳 클릭은 무시
+
+      // 같은 줄의 모든 버튼에서 강조(active)를 떼고, 누른 버튼에만 붙임
+      setActive(statusFilters, btn);
+      currentStatus = btn.getAttribute("data-status");
+      render();
+    });
+
+    // (카테고리 필터) 동작 방식은 위와 동일
+    categoryFilters.addEventListener("click", function (event) {
+      var btn = event.target;
+      if (!btn.classList.contains("filter-btn")) return;
+
+      setActive(categoryFilters, btn);
+      currentCategory = btn.getAttribute("data-category");
+      render();
+    });
+
+    // 한 묶음(container) 안에서 누른 버튼(activeBtn)에만 active 강조를 주는 도우미
+    function setActive(container, activeBtn) {
+      var buttons = container.querySelectorAll(".filter-btn");
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove("active");
+      }
+      activeBtn.classList.add("active");
+    }
+
+    // 입력칸에서 Enter 키를 누르면 addTodo 실행
+    todoInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        addTodo();
+      }
+    });
+
+    // ===== 7) 오늘 날짜를 상단에 표시 =====
+    // 예: "2026년 6월 5일 목요일" 형태로 보여줍니다.
+    function showToday() {
+      var now = new Date(); // 컴퓨터의 현재 날짜를 가져옴
+      var days = ["일", "월", "화", "수", "목", "금", "토"];
+      var text =
+        now.getFullYear() + "년 " +
+        (now.getMonth() + 1) + "월 " + // 월은 0부터 시작하므로 1을 더함
+        now.getDate() + "일 " +
+        days[now.getDay()] + "요일";
+      document.getElementById("today").textContent = text;
+    }
+
+    // ===== 8) 시작하기 =====
+    showToday();  // 오늘 날짜 표시
+    loadTodos();  // 먼저 저장된 할일을 불러오고
+    render();     // 그 다음 화면을 그림 (저장된 게 없으면 빈 목록으로 시작)
+  </script>
+</body>
+</html>
