@@ -19,17 +19,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 구조 (index.html)
 
 `<style>` / `<body>` / `<script>` 세 부분으로 구성. 화면은 위에서 아래로 5개 영역:
-1. 상단(제목 + 오늘 날짜 자동 표시)  2. 진행률  3. 입력  4. 필터  5. 할일 목록
+1. 상단(제목 + 오늘 날짜 자동 표시)  2. 진행률  3. 입력  4. 필터  5. 주간 7일 표
+
+### 주간 보기
+- 화면 맨 아래는 **요일 7칸(월~일)을 가로로 나열**한 주간 표(`#weekGrid`). 각 할일은 자기 `day` 요일 칸에 표시된다.
+- 요일 순서는 전역 `DAYS = ["월",...,"일"]` 기준. 오늘 요일(`todayDay`) 칸은 `.day-column.today`로 강조.
+- 좁은 화면(700px 이하)에서는 7칸이 세로로 쌓인다.
 
 ### 데이터 모델
-- 모든 할일은 전역 배열 `todos`에 보관. 각 항목은 `{ id, title, category, done }`.
+- 모든 할일은 전역 배열 `todos`에 보관. 각 항목은 `{ id, title, category, day, done }`. `day`는 "월"~"일" 중 하나.
 - `nextId`로 고유 id를 발급(겹침 방지). 새 할일은 `unshift`로 맨 앞에 추가.
-- 카테고리: 작업 / 공부 / 개인 / 업무 / 기술 / 지원. 각 카테고리는 `badge.<카테고리명>` CSS 클래스로 배지 색이 결정된다. **카테고리를 추가·변경하면 세 곳을 모두 고쳐야 한다**: 입력 `<select>`, 필터 버튼, `.badge.<이름>` CSS 색상.
+- 카테고리: 작업 / 공부 / 개인 / 업무 / 기술 / 지원 / 운동. 각 카테고리는 `badge.<카테고리명>` CSS 클래스로 배지 색이 결정된다. **카테고리를 추가·변경하면 세 곳을 모두 고쳐야 한다**: 입력 `<select>`, 필터 버튼, `.badge.<이름>` CSS 색상.
 
 ### 렌더링 원칙
-- 데이터가 바뀌면 항상 `render()`를 호출해 목록 전체를 다시 그린다(데이터와 화면 일치).
-- `render()`는 `updateProgress()`(진행률 계산)와 `getFilteredTodos()`(현재 필터 적용)를 거친다.
-- 진행률은 필터와 무관하게 **전체 `todos` 기준**으로 계산한다.
+- 데이터가 바뀌면 항상 `render()`를 호출해 주간 표 전체를 다시 그린다(데이터와 화면 일치).
+- `render()`는 `updateProgress()`(진행률), `getFilteredTodos()`(상태·카테고리 필터 적용)를 거친 뒤, 요일별로 `buildDayColumn()`→`buildCard()`로 칸과 카드를 만든다.
+- 진행률은 필터·요일과 무관하게 **전체 `todos` 기준**으로 계산한다. 요일 칸 머리글의 개수(`완료/전체`)도 필터와 무관하게 그 요일 전체 기준.
 
 ### 저장 (localStorage)
 - `saveTodos()` / `loadTodos()`가 `STORAGE_KEY = "myTodos"`로 저장·복원. `JSON.stringify`/`JSON.parse` 사용.
@@ -37,4 +42,5 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 데이터는 파일이 아니라 브라우저별 localStorage에 남는다(브라우저를 바꾸면 비어 보임).
 
 ### 반응형
-- 480px 이하 화면용 `@media` 쿼리로 입력 영역을 세로로 쌓고 버튼을 키운다.
+- 700px 이하: 주간 7칸을 세로로 쌓는다(`.week-grid` 한 줄에 한 요일).
+- 480px 이하: 입력 영역을 세로로 쌓는다.
